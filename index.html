@@ -1,33 +1,19 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="icon" href="img/flowers.png" type="image/x-icon">
-    <title>Gửi tặng 8/3</title>
+    <title>Hand Heart AR - Camera Interaction</title>
+    <link rel="stylesheet" href="./style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
 </head>
 <body>
-    <div class="greetings">
-    <!-- silahkan menambah kata sesuai keinginan dengan <span>text...</span -->
-        <span>8</span>
-        <span>/</span>
-        <span>3</span>
-        <span>V</span>
-        <span>U</span>
-        <span>I</span>
-        <span>V</span>
-        <span>Ẻ</span>
-    </div>
-    <div class="description">
-        <span>Thiết Hoa Xin tặng ạ</span>
-    </div>
-    <div class="button">
-        <button>
-            <a href="flower.html">Ấn vào đây đi</a>
-        </button>
-        
-    </div>
+    <video id="input_video" style="display:none;"></video>
+    <canvas id="heart"></canvas>
+
+    <div class="instruction">Hãy đưa bàn tay lên camera và mở/nắm tay</div>
+
+    <script src="./script.js"></script>
 </body>
 </html>
