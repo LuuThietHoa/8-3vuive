@@ -73,7 +73,7 @@
             font-size: 10px; cursor: pointer;
         }
 
-        /* Màn 3: AR (Code gốc của bạn) */
+        /* Màn 3: AR */
         #ar-section { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 200; background: #000; }
         #heart { position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 10; }
         #camera-preview {
@@ -100,7 +100,7 @@
     <div id="game-layer">
         <div id="ui-container">
             <div class="stat-box"><span class="stat-label">Vòng</span><span class="stat-value" id="round-val">1</span></div>
-            <div class="stat-box"><span class="stat-label">Thời gian</span><span class="stat-value"><span id="time-val">25</span>s</span></div>
+            <div class="stat-box"><span class="stat-label">Thời gian</span><span class="stat-value"><span id="time-val">10</span>s</span></div>
             <div class="stat-box"><span class="stat-label">Điểm</span><span class="stat-value" id="score-val">0</span></div>
         </div>
 
@@ -127,7 +127,7 @@
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
         // === LOGIC MÀN 1 & 2 ===
-        let currentRound = 1, score = 0, timeLeft = 25, gameStatus = 'init'; 
+        let currentRound = 1, score = 0, timeLeft = 10, gameStatus = 'init'; 
         let flowers = [], bouquetModel, flowerModel, scene, camera, renderer, timerInterval, lastSpawnTime = 0;
 
         const heheMusic = document.getElementById('music-hehe');
@@ -187,12 +187,36 @@
             modalCallback = cb; 
         }
 
+        function clearFlowers() {
+            flowers.forEach(f => scene.remove(f));
+            flowers = [];
+        }
+
+        function handleLevelComplete() {
+            gameStatus = 'paused'; // Khóa ngay lập tức logic rơi/sinh hoa
+            clearFlowers(); // Dọn dẹp hoa còn thừa trên màn hình
+            clearInterval(timerInterval);
+            
+            if (currentRound < 3) {
+                currentRound++;
+                showModal("Tuyệt vời!", `Sẵn sàng qua vòng ${currentRound} chưa?`, "Tiếp tục", startRound);
+            } else {
+                showFinalBouquet();
+            }
+        }
+
+        function handleGameOver() {
+            gameStatus = 'paused';
+            clearFlowers();
+            clearInterval(timerInterval);
+            showModal("Tiếc quá!", "Trượt mất 1 bông rồi, làm lại nhé!", "Thử lại", startRound);
+        }
+
         function startRound() {
             if (currentRound === 1) heheMusic.play().catch(e => console.log("Audio play blocked"));
             document.getElementById('modal').style.display = 'none';
-            flowers.forEach(f => scene.remove(f));
-            flowers = [];
-            timeLeft = 25; // 25 giây
+            clearFlowers();
+            timeLeft = 10; // 10 giây
             gameStatus = 'playing';
             document.getElementById('round-val').innerText = currentRound;
             
@@ -202,13 +226,7 @@
                 timeLeft--;
                 document.getElementById('time-val').innerText = timeLeft;
                 if(timeLeft <= 0) {
-                    clearInterval(timerInterval);
-                    if (currentRound < 3) {
-                        currentRound++;
-                        showModal("Tuyệt vời!", `Sẵn sàng qua vòng ${currentRound} chưa?`, "Tiếp tục", startRound);
-                    } else {
-                        showFinalBouquet();
-                    }
+                    handleLevelComplete();
                 }
             }, 1000);
         }
@@ -216,6 +234,8 @@
         cheatBtn.onclick = () => {
             const pwd = prompt("Nhập mật khẩu để vượt ải:");
             if (pwd === "anhyeuem") {
+                gameStatus = 'paused';
+                clearFlowers();
                 clearInterval(timerInterval);
                 showFinalBouquet();
             } else if (pwd !== null) {
@@ -228,7 +248,7 @@
             document.getElementById('modal').style.display = 'none';
             heheMusic.pause();
             finalMusic.play();
-            flowers.forEach(f => scene.remove(f));
+            clearFlowers();
             document.getElementById('ui-container').style.display = 'none';
             cheatBtn.style.display = 'none';
             bouquetModel.visible = true;
@@ -242,7 +262,6 @@
                 setInterval(() => { p.position.y += 0.02; if(p.position.y > 6) p.position.y = -6; }, 16);
             }
 
-            // Hiện nút để qua màn 3
             btnNextAr.style.display = 'block';
         }
 
@@ -250,13 +269,14 @@
             document.getElementById('game-layer').style.display = 'none';
             document.getElementById('main-bg').style.display = 'none'; 
             document.getElementById('ar-section').style.display = 'block'; 
-            startAR(); // Gọi hàm bên dưới
+            startAR(); 
         };
 
         function animate(time) {
             requestAnimationFrame(animate);
             if (gameStatus === 'playing') {
                 const cfg = levelConfig[currentRound];
+                // Chỉ sinh hoa mới khi game đang chạy
                 if (time - lastSpawnTime > cfg.rate) {
                     const f = flowerModel.clone();
                     f.position.set((Math.random() - 0.5) * 8.5, 10, 0); 
@@ -264,15 +284,20 @@
                     flowers.push(f);
                     lastSpawnTime = time;
                 }
+                
+                // Di chuyển hoa
                 for (let i = flowers.length - 1; i >= 0; i--) {
                     flowers[i].position.y -= cfg.speed;
                     flowers[i].rotation.y += 0.03;
+                    
+                    // Nếu rớt thì dừng game ngay lập tức
                     if (flowers[i].position.y < -10) {
-                        gameStatus = 'lost';
-                        showModal("Tiếc quá!", "Trượt mất 1 bông rồi, làm lại nhé!", "Thử lại", startRound);
+                        handleGameOver();
+                        break; // Thoát vòng lặp để tránh lỗi mảng khi clearFlowers
                     }
                 }
             }
+            
             if (gameStatus === 'gift' && bouquetModel) bouquetModel.rotation.y += 0.015;
             renderer.render(scene, camera);
         }
@@ -319,7 +344,7 @@
         });
 
 
-        // === LOGIC MÀN 3: AR HEART (Sử dụng code gốc) ===
+        // === LOGIC MÀN 3: AR HEART ===
         function startAR() {
             let handOpenLevel = 0; 
             let handPosX = window.innerWidth / 2;
@@ -430,7 +455,6 @@
             
             cam.start()
                 .then(() => {
-                    // Start loop only when camera is successfully started
                     loop();
                 })
                 .catch(err => {
