@@ -21,7 +21,7 @@
 
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: 'Quicksand', sans-serif; user-select: none; background: #000; }
 
-        /* Background Gradient Mộng Mơ */
+        /* Background Gradient cho Màn 1 & 2 */
         #main-bg {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;
             background: linear-gradient(-45deg, #ff9a9e, #fecfef, #ffc3a0, #ffb199, #ff758c);
@@ -38,33 +38,31 @@
             border-radius: 20px; box-shadow: 0 8px 32px rgba(255, 105, 180, 0.2);
         }
         .stat-box { color: #fff; text-align: center; }
-        .stat-value { font-size: 1.4rem; font-weight: 800; display: block; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-        .stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.9; }
+        .stat-value { font-size: 1.4rem; font-weight: 800; display: block; }
+        .stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; }
 
-        /* Canvas Game (Phải nằm trên nền, dưới UI) */
         canvas { position: absolute; top: 0; left: 0; outline: none; z-index: 5; }
 
-        /* Modal trong suốt */
+        /* Modal */
         #modal {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             background: rgba(255, 255, 255, 0.25); backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.5);
             border-radius: 30px; padding: 40px; text-align: center; z-index: 100;
             display: none; flex-direction: column; width: 75%; max-width: 320px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
         }
-        #modal h2 { font-family: 'Pacifico', cursive; color: #fff; margin: 0; font-size: 2rem; text-shadow: 0 2px 10px rgba(255, 105, 180, 0.5); }
+        #modal h2 { font-family: 'Pacifico', cursive; color: #fff; margin: 0; font-size: 2rem; }
         #modal p { color: #fff; margin: 20px 0; font-size: 1.1rem; line-height: 1.5; }
-        button {
+        
+        #modal-btn {
             background: linear-gradient(45deg, #ff758c, #ff7eb3); border: none; padding: 14px; 
             border-radius: 30px; color: white; font-weight: bold; cursor: pointer; font-size: 1.1rem;
-            box-shadow: 0 5px 15px rgba(255, 117, 140, 0.4); transition: 0.3s;
+            box-shadow: 0 5px 15px rgba(255, 117, 140, 0.4);
         }
-        button:active { transform: scale(0.95); }
 
-        /* Màn cuối AR */
+        /* Màn cuối AR - NỀN ĐEN */
         #ar-section { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 200; background: #000; }
-        #camera-preview { position: absolute; top: 15px; right: 15px; width: 110px; height: 82px; border-radius: 12px; transform: scaleX(-1); border: 2px solid rgba(255,255,255,0.5); z-index: 210; }
+        #camera-preview { position: absolute; top: 15px; right: 15px; width: 110px; height: 82px; border-radius: 12px; transform: scaleX(-1); border: 2px solid rgba(255,255,255,0.3); z-index: 210; }
         #heart-canvas { width: 100%; height: 100%; z-index: 205; }
 
         .particle { position: absolute; width: 10px; height: 10px; background: #fff; border-radius: 50%; pointer-events: none; z-index: 100; animation: burst 0.6s ease-out forwards; }
@@ -86,7 +84,7 @@
 
         <div id="modal">
             <h2 id="modal-title">Chào Nàng!</h2>
-            <p id="modal-desc">Sẵn sàng bắt những đóa hoa xinh đẹp nhất chưa?</p>
+            <p id="modal-desc">Đang tải hoa...</p>
             <button id="modal-btn">Bắt đầu ngay</button>
         </div>
     </div>
@@ -95,24 +93,19 @@
         <video id="input_video" style="display:none;"></video>
         <canvas id="camera-preview"></canvas>
         <canvas id="heart-canvas"></canvas>
-        <div style="position:absolute; bottom:40px; width:100%; text-align:center; color:white; font-size:1.1rem; text-shadow:0 2px 4px #000; pointer-events:none;">Xòe bàn tay để hiện trái tim tặng nàng</div>
+        <div style="position:absolute; bottom:40px; width:100%; text-align:center; color:white; font-size:0.9rem; opacity:0.7; pointer-events:none;">Xòe bàn tay để hiện trái tim</div>
     </div>
 
     <script type="module">
         import * as THREE from 'three';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-        let currentRound = 1;
-        let score = 0;
-        let timeLeft = 60;
-        let gameStatus = 'init'; 
-        let flowers = [];
-        let bouquetModel, flowerModel;
-        let scene, camera, renderer, timerInterval;
-        let lastSpawnTime = 0;
+        let currentRound = 1, score = 0, timeLeft = 60, gameStatus = 'init'; 
+        let flowers = [], bouquetModel, flowerModel, scene, camera, renderer, timerInterval, lastSpawnTime = 0;
 
         const heheMusic = document.getElementById('music-hehe');
         const finalMusic = document.getElementById('music-456');
+        const modalBtn = document.getElementById('modal-btn');
 
         const levelConfig = {
             1: { speed: 0.07, rate: 1500 },
@@ -125,11 +118,10 @@
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
             camera.position.z = 12;
 
-            // Quan trọng: alpha: true để thấy nền gradient
             renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
-            document.body.appendChild(renderer.domElement);
+            document.getElementById('game-layer').appendChild(renderer.domElement);
 
             scene.add(new THREE.AmbientLight(0xffffff, 2.5));
             const sun = new THREE.DirectionalLight(0xffffff, 1.5);
@@ -140,6 +132,8 @@
             loader.load('flower_bouquet.glb', (gltf) => {
                 flowerModel = gltf.scene;
                 flowerModel.scale.set(3.5, 3.5, 3.5);
+                // Sau khi load xong hoa thì mới cho phép nhấn nút
+                document.getElementById('modal-desc').innerText = "Sẵn sàng bắt những đóa hoa xinh đẹp nhất chưa?";
                 document.getElementById('modal').style.display = 'flex';
             });
             loader.load('bouquet.glb', (gltf) => {
@@ -153,8 +147,22 @@
             animate();
         }
 
+        // FIX: Hàm xử lý click nút Modal
+        let modalCallback = null;
+        modalBtn.onclick = () => {
+            if (modalCallback) modalCallback();
+        };
+
+        function showModal(t, d, b, cb) {
+            document.getElementById('modal-title').innerText = t;
+            document.getElementById('modal-desc').innerText = d;
+            modalBtn.innerText = b;
+            document.getElementById('modal').style.display = 'flex';
+            modalCallback = cb; // Gán hàm xử lý khi nhấn nút
+        }
+
         function startRound() {
-            if (currentRound === 1) heheMusic.play();
+            if (currentRound === 1) heheMusic.play().catch(e => console.log("Audio play blocked"));
             document.getElementById('modal').style.display = 'none';
             flowers.forEach(f => scene.remove(f));
             flowers = [];
@@ -187,7 +195,7 @@
             document.getElementById('ui-container').style.display = 'none';
             bouquetModel.visible = true;
             
-            // Hạt lấp lánh xung quanh đóa hoa
+            // Hạt lấp lánh
             const pGeo = new THREE.SphereGeometry(0.06, 6, 6);
             const pMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
             for(let i=0; i<40; i++){
@@ -205,8 +213,7 @@
                 const cfg = levelConfig[currentRound];
                 if (time - lastSpawnTime > cfg.rate) {
                     const f = flowerModel.clone();
-                    // PHẠM VI HẸP CHO ĐIỆN THOẠI: chỉ trong khoảng -4.5 đến 4.5
-                    f.position.set((Math.random() - 0.5) * 9, 10, 0);
+                    f.position.set((Math.random() - 0.5) * 8.5, 10, 0); // Thu hẹp xPos cho mobile
                     scene.add(f);
                     flowers.push(f);
                     lastSpawnTime = time;
@@ -220,10 +227,11 @@
                     }
                 }
             }
-            if (gameStatus === 'gift') bouquetModel.rotation.y += 0.015;
+            if (gameStatus === 'gift' && bouquetModel) bouquetModel.rotation.y += 0.015;
             renderer.render(scene, camera);
         }
 
+        // Bắt hoa
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
         window.addEventListener('pointerdown', (e) => {
@@ -244,11 +252,11 @@
         });
 
         function createBurst(x, y) {
-            for(let i=0; i<12; i++) {
+            for(let i=0; i<10; i++) {
                 const p = document.createElement('div');
                 p.className = 'particle';
                 p.style.left = x+'px'; p.style.top = y+'px';
-                const a = Math.random()*Math.PI*2, v = 40+Math.random()*60;
+                const a = Math.random()*Math.PI*2, v = 40+Math.random()*50;
                 p.style.setProperty('--tx', Math.cos(a)*v+'px');
                 p.style.setProperty('--ty', Math.sin(a)*v+'px');
                 document.body.appendChild(p);
@@ -256,24 +264,13 @@
             }
         }
 
-        function showModal(t, d, b, cb) {
-            const m = document.getElementById('modal');
-            document.getElementById('modal-title').innerText = t;
-            document.getElementById('modal-desc').innerText = d;
-            const btn = document.getElementById('modal-btn');
-            btn.innerText = b; m.style.display = 'flex';
-            btn.onclick = cb;
-        }
-
+        // Chuyển sang màn AR Trái Tim
         function startAR() {
             document.getElementById('game-layer').style.display = 'none';
-            renderer.domElement.style.display = 'none';
-            document.getElementById('main-bg').style.display = 'none';
-            document.getElementById('ar-section').style.display = 'block';
+            document.getElementById('main-bg').style.display = 'none'; // Tắt background hồng
+            document.getElementById('ar-section').style.display = 'block'; // Hiện AR nền đen
             initHeartAR();
         }
-
-        initThree();
 
         function initHeartAR() {
             const canvasH = document.getElementById('heart-canvas');
@@ -305,19 +302,22 @@
             new Camera(video, { onFrame: async () => { await hands.send({image: video}); }, facingMode: 'user' }).start();
 
             function drawH() {
-                ctxH.fillStyle = "rgba(0,0,0,0.18)";
+                ctxH.fillStyle = "rgba(0,0,0,0.2)"; // Nền đen mờ tạo vệt đuôi
                 ctxH.fillRect(0, 0, w, h);
                 particles.forEach(p => {
                     const target = [handOpen * points[p.q][0] * 13 + hX, handOpen * points[p.q][1] * 13 + hY];
                     p.vx += (target[0] - p.x) * 0.06; p.vy += (target[1] - p.y) * 0.06;
                     p.x += p.vx *= 0.75; p.y += p.vy *= 0.75;
-                    ctxH.fillStyle = `hsla(${340 + handOpen*20}, 100%, 70%, 0.8)`;
+                    ctxH.fillStyle = `hsla(${340 + handOpen*20}, 100%, 75%, 0.8)`;
                     ctxH.fillRect(p.x, p.y, 2.5, 2.5);
                 });
                 requestAnimationFrame(drawH);
             }
             drawH();
         }
+
+        initThree();
+        modalCallback = startRound; // Khởi tạo callback ban đầu
 
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
