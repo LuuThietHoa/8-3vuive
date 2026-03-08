@@ -3,17 +3,206 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hand Heart AR - Camera Interaction</title>
-    <link rel="stylesheet" href="./style.css">
+    <title>Hand Heart AR - Camera Preview</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #000; font-family: sans-serif; }
+        
+        /* Canvas hiệu ứng trái tim tràn màn hình */
+        #heart { position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 10; }
+
+        /* Khung Camera nhỏ ở góc trên bên phải */
+        #camera-preview {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            width: 140px;
+            height: 105px;
+            border-radius: 10px;
+            border: 2px solid rgba(255, 0, 0, 0.6);
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            transform: scaleX(-1); /* Lật gương cho tự nhiên */
+            background: #222;
+        }
+
+        /* Nút Start để kích hoạt quyền Camera trên Mobile */
+        #btn-start {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 15px 40px;
+            font-size: 18px;
+            color: white;
+            background: #ff0044;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            z-index: 200;
+            box-shadow: 0 0 20px rgba(255, 0, 68, 0.5);
+        }
+
+        .instruction {
+            position: absolute;
+            bottom: 30px;
+            width: 100%;
+            text-align: center;
+            color: white;
+            z-index: 50;
+            pointer-events: none;
+            text-shadow: 0 2px 5px #000;
+        }
+    </style>
 </head>
 <body>
+
+    <button id="btn-start">Nhấn để bắt đầu</button>
+    <div class="instruction">Xòe tay để hiện trái tim, Nắm tay để thu lại</div>
+
     <video id="input_video" style="display:none;"></video>
+    
+    <canvas id="camera-preview"></canvas>
+    
     <canvas id="heart"></canvas>
 
-    <div class="instruction">Hãy đưa bàn tay lên camera và mở/nắm tay</div>
+    <script>
+        let handOpenLevel = 0; 
+        let handPosX = window.innerWidth / 2;
+        let handPosY = window.innerHeight / 2;
+        let isStarted = false;
 
-    <script src="./script.js"></script>
+        const btnStart = document.getElementById('btn-start');
+        const canvas = document.getElementById('heart');
+        const ctx = canvas.getContext('2d');
+        const previewCanvas = document.getElementById('camera-preview');
+        const previewCtx = previewCanvas.getContext('2d');
+        const videoElement = document.getElementById('input_video');
+
+        // Khởi tạo Canvas chính
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+
+        window.addEventListener('resize', () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        });
+
+        // Cấu hình vẽ trái tim (Giữ logic toán học của bạn)
+        const heartPosition = (rad) => [Math.pow(Math.sin(rad), 3), -(15 * Math.cos(rad) - 5 * Math.cos(2 * rad) - 2 * Math.cos(3 * rad) - Math.cos(4 * rad))];
+        const scaleAndTranslate = (pos, sx, sy, dx, dy) => [dx + pos[0] * sx, dy + pos[1] * sy];
+
+        let pointsOrigin = [];
+        for (let i = 0; i < Math.PI * 2; i += 0.1) pointsOrigin.push(scaleAndTranslate(heartPosition(i), 210, 13, 0, 0));
+        for (let i = 0; i < Math.PI * 2; i += 0.1) pointsOrigin.push(scaleAndTranslate(heartPosition(i), 150, 9, 0, 0));
+        for (let i = 0; i < Math.PI * 2; i += 0.1) pointsOrigin.push(scaleAndTranslate(heartPosition(i), 90, 5, 0, 0));
+
+        let e = pointsOrigin.map((p, i) => ({
+            vx: 0, vy: 0, speed: Math.random() + 5,
+            q: ~~(Math.random() * pointsOrigin.length),
+            D: 2 * (i % 2) - 1,
+            force: 0.2 * Math.random() + 0.7,
+            f: `hsla(0, ${70 + Math.random() * 30}%, ${50 + Math.random() * 20}%, .3)`,
+            trace: Array.from({length: 40}, () => ({x: Math.random() * width, y: Math.random() * height}))
+        }));
+
+        const loop = () => {
+            ctx.fillStyle = "rgba(0,0,0,.15)";
+            ctx.fillRect(0, 0, width, height);
+
+            const targetPoints = pointsOrigin.map(p => [
+                handOpenLevel * p[0] + handPosX,
+                handOpenLevel * p[1] + handPosY
+            ]);
+
+            e.forEach(u => {
+                const q = targetPoints[u.q];
+                const dx = u.trace[0].x - q[0];
+                const dy = u.trace[0].y - q[1];
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist < 10) {
+                    if (Math.random() > 0.95) u.q = ~~(Math.random() * pointsOrigin.length);
+                    else {
+                        u.q = (u.q + u.D + pointsOrigin.length) % pointsOrigin.length;
+                    }
+                }
+
+                u.vx -= dx / dist * u.speed;
+                u.vy -= dy / dist * u.speed;
+                u.trace[0].x += u.vx;
+                u.trace[0].y += u.vy;
+                u.vx *= u.force;
+                u.vy *= u.force;
+
+                for (let k = 1; k < u.trace.length; k++) {
+                    u.trace[k].x -= 0.4 * (u.trace[k].x - u.trace[k-1].x);
+                    u.trace[k].y -= 0.4 * (u.trace[k].y - u.trace[k-1].y);
+                }
+
+                ctx.fillStyle = u.f;
+                u.trace.forEach(t => ctx.fillRect(t.x, t.y, 1, 1));
+            });
+
+            requestAnimationFrame(loop);
+        };
+
+        // Thiết lập MediaPipe
+        const hands = new Hands({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+        });
+
+        hands.setOptions({
+            maxNumHands: 1,
+            modelComplexity: 1,
+            minDetectionConfidence: 0.6,
+            minTrackingConfidence: 0.6
+        });
+
+        hands.onResults((results) => {
+            // Vẽ vào khung Preview nhỏ
+            previewCtx.save();
+            previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+            previewCtx.drawImage(results.image, 0, 0, previewCanvas.width, previewCanvas.height);
+            previewCtx.restore();
+
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                const lm = results.multiHandLandmarks[0];
+                
+                // Vị trí tim theo lòng bàn tay (điểm 9)
+                handPosX = (1 - lm[9].x) * width;
+                handPosY = lm[9].y * height;
+
+                // Tính độ mở tay (Khoảng cách đầu ngón giữa - cổ tay)
+                const d = Math.sqrt(Math.pow(lm[12].x - lm[0].x, 2) + Math.pow(lm[12].y - lm[0].y, 2));
+                
+                // Tăng hệ số nhạy (3.5) để dễ bung trái tim hơn
+                handOpenLevel = Math.min(Math.max((d - 0.1) * 3.5, 0), 1.2);
+            } else {
+                handOpenLevel = Math.max(0, handOpenLevel - 0.1);
+            }
+        });
+
+        // Khởi động hệ thống
+        function startSystem() {
+            if (isStarted) return;
+            isStarted = true;
+            btnStart.style.display = 'none';
+
+            const camera = new Camera(videoElement, {
+                onFrame: async () => {
+                    await hands.send({image: videoElement});
+                },
+                facingMode: 'user',
+                width: 640,
+                height: 480
+            });
+            camera.start();
+            loop();
+        }
+
+        btnStart.addEventListener('click', startSystem);
+    </script>
 </body>
 </html>
