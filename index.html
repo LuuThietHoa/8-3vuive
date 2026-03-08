@@ -78,7 +78,7 @@
     <div id="game-layer">
         <div id="ui-container">
             <div class="stat-box"><span class="stat-label">Vòng</span><span class="stat-value" id="round-val">1</span></div>
-            <div class="stat-box"><span class="stat-label">Thời gian</span><span class="stat-value"><span id="time-val">60</span>s</span></div>
+            <div class="stat-box"><span class="stat-label">Thời gian</span><span class="stat-value"><span id="time-val">25</span>s</span></div>
             <div class="stat-box"><span class="stat-label">Điểm</span><span class="stat-value" id="score-val">0</span></div>
         </div>
 
@@ -100,7 +100,7 @@
         import * as THREE from 'three';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-        let currentRound = 1, score = 0, timeLeft = 60, gameStatus = 'init'; 
+        let currentRound = 1, score = 0, timeLeft = 25, gameStatus = 'init'; 
         let flowers = [], bouquetModel, flowerModel, scene, camera, renderer, timerInterval, lastSpawnTime = 0;
 
         const heheMusic = document.getElementById('music-hehe');
@@ -132,7 +132,6 @@
             loader.load('flower_bouquet.glb', (gltf) => {
                 flowerModel = gltf.scene;
                 flowerModel.scale.set(3.5, 3.5, 3.5);
-                // Sau khi load xong hoa thì mới cho phép nhấn nút
                 document.getElementById('modal-desc').innerText = "Sẵn sàng bắt những đóa hoa xinh đẹp nhất chưa?";
                 document.getElementById('modal').style.display = 'flex';
             });
@@ -147,7 +146,6 @@
             animate();
         }
 
-        // FIX: Hàm xử lý click nút Modal
         let modalCallback = null;
         modalBtn.onclick = () => {
             if (modalCallback) modalCallback();
@@ -158,7 +156,7 @@
             document.getElementById('modal-desc').innerText = d;
             modalBtn.innerText = b;
             document.getElementById('modal').style.display = 'flex';
-            modalCallback = cb; // Gán hàm xử lý khi nhấn nút
+            modalCallback = cb; 
         }
 
         function startRound() {
@@ -166,7 +164,7 @@
             document.getElementById('modal').style.display = 'none';
             flowers.forEach(f => scene.remove(f));
             flowers = [];
-            timeLeft = 60;
+            timeLeft = 25; // Cập nhật thời gian vòng chơi thành 25s
             gameStatus = 'playing';
             document.getElementById('round-val').innerText = currentRound;
             
@@ -195,7 +193,6 @@
             document.getElementById('ui-container').style.display = 'none';
             bouquetModel.visible = true;
             
-            // Hạt lấp lánh
             const pGeo = new THREE.SphereGeometry(0.06, 6, 6);
             const pMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
             for(let i=0; i<40; i++){
@@ -213,7 +210,7 @@
                 const cfg = levelConfig[currentRound];
                 if (time - lastSpawnTime > cfg.rate) {
                     const f = flowerModel.clone();
-                    f.position.set((Math.random() - 0.5) * 8.5, 10, 0); // Thu hẹp xPos cho mobile
+                    f.position.set((Math.random() - 0.5) * 8.5, 10, 0); 
                     scene.add(f);
                     flowers.push(f);
                     lastSpawnTime = time;
@@ -231,7 +228,6 @@
             renderer.render(scene, camera);
         }
 
-        // Bắt hoa
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
         window.addEventListener('pointerdown', (e) => {
@@ -264,11 +260,10 @@
             }
         }
 
-        // Chuyển sang màn AR Trái Tim
         function startAR() {
             document.getElementById('game-layer').style.display = 'none';
-            document.getElementById('main-bg').style.display = 'none'; // Tắt background hồng
-            document.getElementById('ar-section').style.display = 'block'; // Hiện AR nền đen
+            document.getElementById('main-bg').style.display = 'none'; 
+            document.getElementById('ar-section').style.display = 'block'; 
             initHeartAR();
         }
 
@@ -302,7 +297,7 @@
             new Camera(video, { onFrame: async () => { await hands.send({image: video}); }, facingMode: 'user' }).start();
 
             function drawH() {
-                ctxH.fillStyle = "rgba(0,0,0,0.2)"; // Nền đen mờ tạo vệt đuôi
+                ctxH.fillStyle = "rgba(0,0,0,0.2)"; 
                 ctxH.fillRect(0, 0, w, h);
                 particles.forEach(p => {
                     const target = [handOpen * points[p.q][0] * 13 + hX, handOpen * points[p.q][1] * 13 + hY];
@@ -317,7 +312,7 @@
         }
 
         initThree();
-        modalCallback = startRound; // Khởi tạo callback ban đầu
+        modalCallback = startRound; 
 
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
