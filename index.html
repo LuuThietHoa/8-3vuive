@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>8/3 Special - Dreamy Flowers</title>
+    <title>8/3 Special - Dreamy Flowers & Heart</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
@@ -21,7 +21,7 @@
 
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: 'Quicksand', sans-serif; user-select: none; background: #000; }
 
-        /* Background Gradient cho Màn 1 & 2 */
+        /* Màn 1 & 2 Background */
         #main-bg {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;
             background: linear-gradient(-45deg, #ff9a9e, #fecfef, #ffc3a0, #ffb199, #ff758c);
@@ -29,7 +29,7 @@
         }
         @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
 
-        /* UI Glassmorphism */
+        /* UI Màn 1 */
         #ui-container {
             position: absolute; top: 30px; left: 50%; transform: translateX(-50%);
             display: flex; gap: 20px; z-index: 10; padding: 12px 30px;
@@ -41,9 +41,10 @@
         .stat-value { font-size: 1.4rem; font-weight: 800; display: block; }
         .stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; }
 
-        canvas { position: absolute; top: 0; left: 0; outline: none; z-index: 5; }
+        /* Canvas Game */
+        #game-canvas { position: absolute; top: 0; left: 0; outline: none; z-index: 5; }
 
-        /* Modal */
+        /* Modals */
         #modal {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             background: rgba(255, 255, 255, 0.25); backdrop-filter: blur(20px);
@@ -53,17 +54,38 @@
         }
         #modal h2 { font-family: 'Pacifico', cursive; color: #fff; margin: 0; font-size: 2rem; }
         #modal p { color: #fff; margin: 20px 0; font-size: 1.1rem; line-height: 1.5; }
-        
-        #modal-btn {
+        .pink-btn {
             background: linear-gradient(45deg, #ff758c, #ff7eb3); border: none; padding: 14px; 
             border-radius: 30px; color: white; font-weight: bold; cursor: pointer; font-size: 1.1rem;
             box-shadow: 0 5px 15px rgba(255, 117, 140, 0.4);
         }
 
-        /* Màn cuối AR - NỀN ĐEN */
+        /* Nút qua màn 3 (Màn 2) */
+        #btn-next-ar {
+            position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
+            z-index: 50; display: none;
+        }
+
+        /* Nút Mini Cheat (Màn 1) */
+        #cheat-btn {
+            position: absolute; bottom: 10px; left: 10px; z-index: 50;
+            background: transparent; border: none; color: rgba(255,255,255,0.3);
+            font-size: 10px; cursor: pointer;
+        }
+
+        /* Màn 3: AR (Code gốc của bạn) */
         #ar-section { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 200; background: #000; }
-        #camera-preview { position: absolute; top: 15px; right: 15px; width: 110px; height: 82px; border-radius: 12px; transform: scaleX(-1); border: 2px solid rgba(255,255,255,0.3); z-index: 210; }
-        #heart-canvas { width: 100%; height: 100%; z-index: 205; }
+        #heart { position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 10; }
+        #camera-preview {
+            position: fixed; top: 15px; right: 15px; width: 140px; height: 105px;
+            border-radius: 10px; border: 2px solid rgba(255, 0, 0, 0.6);
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5); z-index: 100;
+            transform: scaleX(-1); background: #222;
+        }
+        .instruction {
+            position: absolute; bottom: 30px; width: 100%; text-align: center;
+            color: white; z-index: 50; pointer-events: none; text-shadow: 0 2px 5px #000;
+        }
 
         .particle { position: absolute; width: 10px; height: 10px; background: #fff; border-radius: 50%; pointer-events: none; z-index: 100; animation: burst 0.6s ease-out forwards; }
         @keyframes burst { 0% { transform: translate(0,0) scale(1); opacity: 1; } 100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; } }
@@ -82,30 +104,37 @@
             <div class="stat-box"><span class="stat-label">Điểm</span><span class="stat-value" id="score-val">0</span></div>
         </div>
 
+        <button id="cheat-btn">skip</button>
+
         <div id="modal">
             <h2 id="modal-title">Chào Nàng!</h2>
             <p id="modal-desc">Đang tải hoa...</p>
-            <button id="modal-btn">Bắt đầu ngay</button>
+            <button id="modal-btn" class="pink-btn">Bắt đầu ngay</button>
         </div>
+
+        <button id="btn-next-ar" class="pink-btn">Nhận thêm quà nè 🌸</button>
     </div>
 
     <div id="ar-section">
-        <video id="input_video" style="display:none;"></video>
+        <video id="input_video" style="display:none;" playsinline></video>
         <canvas id="camera-preview"></canvas>
-        <canvas id="heart-canvas"></canvas>
-        <div style="position:absolute; bottom:40px; width:100%; text-align:center; color:white; font-size:0.9rem; opacity:0.7; pointer-events:none;">Xòe bàn tay để hiện trái tim</div>
+        <canvas id="heart"></canvas>
+        <div class="instruction">Xòe tay để hiện trái tim, Nắm tay để thu lại</div>
     </div>
 
     <script type="module">
         import * as THREE from 'three';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
+        // === LOGIC MÀN 1 & 2 ===
         let currentRound = 1, score = 0, timeLeft = 25, gameStatus = 'init'; 
         let flowers = [], bouquetModel, flowerModel, scene, camera, renderer, timerInterval, lastSpawnTime = 0;
 
         const heheMusic = document.getElementById('music-hehe');
         const finalMusic = document.getElementById('music-456');
         const modalBtn = document.getElementById('modal-btn');
+        const cheatBtn = document.getElementById('cheat-btn');
+        const btnNextAr = document.getElementById('btn-next-ar');
 
         const levelConfig = {
             1: { speed: 0.07, rate: 1500 },
@@ -121,6 +150,7 @@
             renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.domElement.id = "game-canvas";
             document.getElementById('game-layer').appendChild(renderer.domElement);
 
             scene.add(new THREE.AmbientLight(0xffffff, 2.5));
@@ -147,9 +177,7 @@
         }
 
         let modalCallback = null;
-        modalBtn.onclick = () => {
-            if (modalCallback) modalCallback();
-        };
+        modalBtn.onclick = () => { if (modalCallback) modalCallback(); };
 
         function showModal(t, d, b, cb) {
             document.getElementById('modal-title').innerText = t;
@@ -164,7 +192,7 @@
             document.getElementById('modal').style.display = 'none';
             flowers.forEach(f => scene.remove(f));
             flowers = [];
-            timeLeft = 25; // Cập nhật thời gian vòng chơi thành 25s
+            timeLeft = 25; // 25 giây
             gameStatus = 'playing';
             document.getElementById('round-val').innerText = currentRound;
             
@@ -185,12 +213,24 @@
             }, 1000);
         }
 
+        cheatBtn.onclick = () => {
+            const pwd = prompt("Nhập mật khẩu để vượt ải:");
+            if (pwd === "anhyeuem") {
+                clearInterval(timerInterval);
+                showFinalBouquet();
+            } else if (pwd !== null) {
+                alert("Sai rồi nha!");
+            }
+        };
+
         function showFinalBouquet() {
             gameStatus = 'gift';
+            document.getElementById('modal').style.display = 'none';
             heheMusic.pause();
             finalMusic.play();
             flowers.forEach(f => scene.remove(f));
             document.getElementById('ui-container').style.display = 'none';
+            cheatBtn.style.display = 'none';
             bouquetModel.visible = true;
             
             const pGeo = new THREE.SphereGeometry(0.06, 6, 6);
@@ -201,8 +241,17 @@
                 scene.add(p);
                 setInterval(() => { p.position.y += 0.02; if(p.position.y > 6) p.position.y = -6; }, 16);
             }
-            showModal("Hạnh phúc nhé!", "8/3 thật rực rỡ nàng nha!", "Xem quà cuối nè", startAR);
+
+            // Hiện nút để qua màn 3
+            btnNextAr.style.display = 'block';
         }
+
+        btnNextAr.onclick = () => {
+            document.getElementById('game-layer').style.display = 'none';
+            document.getElementById('main-bg').style.display = 'none'; 
+            document.getElementById('ar-section').style.display = 'block'; 
+            startAR(); // Gọi hàm bên dưới
+        };
 
         function animate(time) {
             requestAnimationFrame(animate);
@@ -260,57 +309,6 @@
             }
         }
 
-        function startAR() {
-            document.getElementById('game-layer').style.display = 'none';
-            document.getElementById('main-bg').style.display = 'none'; 
-            document.getElementById('ar-section').style.display = 'block'; 
-            initHeartAR();
-        }
-
-        function initHeartAR() {
-            const canvasH = document.getElementById('heart-canvas');
-            const ctxH = canvasH.getContext('2d');
-            const previewCanvas = document.getElementById('camera-preview');
-            const previewCtx = previewCanvas.getContext('2d');
-            const video = document.getElementById('input_video');
-            let w = canvasH.width = window.innerWidth, h = canvasH.height = window.innerHeight;
-            let handOpen = 0, hX = w/2, hY = h/2;
-
-            const heartPos = (rad) => [Math.pow(Math.sin(rad), 3), -(15 * Math.cos(rad) - 5 * Math.cos(2 * rad) - 2 * Math.cos(3 * rad) - Math.cos(4 * rad))];
-            let points = [];
-            for (let i = 0; i < Math.PI * 2; i += 0.1) points.push(heartPos(i));
-            let particles = points.map(() => ({ x: Math.random()*w, y: Math.random()*h, vx: 0, vy: 0, q: ~~(Math.random()*points.length) }));
-
-            const hands = new Hands({locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
-            hands.setOptions({maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.6});
-            hands.onResults(res => {
-                previewCtx.clearRect(0,0,110,82);
-                previewCtx.drawImage(res.image, 0, 0, 110, 82);
-                if (res.multiHandLandmarks?.length > 0) {
-                    const lm = res.multiHandLandmarks[0];
-                    hX = (1 - lm[9].x) * w; hY = lm[9].y * h;
-                    const d = Math.sqrt(Math.pow(lm[12].x - lm[0].x, 2) + Math.pow(lm[12].y - lm[0].y, 2));
-                    handOpen = Math.min(Math.max((d - 0.1) * 3.8, 0), 1.4);
-                } else { handOpen = Math.max(0, handOpen - 0.05); }
-            });
-
-            new Camera(video, { onFrame: async () => { await hands.send({image: video}); }, facingMode: 'user' }).start();
-
-            function drawH() {
-                ctxH.fillStyle = "rgba(0,0,0,0.2)"; 
-                ctxH.fillRect(0, 0, w, h);
-                particles.forEach(p => {
-                    const target = [handOpen * points[p.q][0] * 13 + hX, handOpen * points[p.q][1] * 13 + hY];
-                    p.vx += (target[0] - p.x) * 0.06; p.vy += (target[1] - p.y) * 0.06;
-                    p.x += p.vx *= 0.75; p.y += p.vy *= 0.75;
-                    ctxH.fillStyle = `hsla(${340 + handOpen*20}, 100%, 75%, 0.8)`;
-                    ctxH.fillRect(p.x, p.y, 2.5, 2.5);
-                });
-                requestAnimationFrame(drawH);
-            }
-            drawH();
-        }
-
         initThree();
         modalCallback = startRound; 
 
@@ -319,6 +317,127 @@
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
+
+
+        // === LOGIC MÀN 3: AR HEART (Sử dụng code gốc) ===
+        function startAR() {
+            let handOpenLevel = 0; 
+            let handPosX = window.innerWidth / 2;
+            let handPosY = window.innerHeight / 2;
+
+            const canvas = document.getElementById('heart');
+            const ctx = canvas.getContext('2d');
+            const previewCanvas = document.getElementById('camera-preview');
+            const previewCtx = previewCanvas.getContext('2d');
+            const videoElement = document.getElementById('input_video');
+
+            let width = canvas.width = window.innerWidth;
+            let height = canvas.height = window.innerHeight;
+
+            window.addEventListener('resize', () => {
+                width = canvas.width = window.innerWidth;
+                height = canvas.height = window.innerHeight;
+            });
+
+            const heartPosition = (rad) => [Math.pow(Math.sin(rad), 3), -(15 * Math.cos(rad) - 5 * Math.cos(2 * rad) - 2 * Math.cos(3 * rad) - Math.cos(4 * rad))];
+            const scaleAndTranslate = (pos, sx, sy, dx, dy) => [dx + pos[0] * sx, dy + pos[1] * sy];
+
+            let pointsOrigin = [];
+            for (let i = 0; i < Math.PI * 2; i += 0.1) pointsOrigin.push(scaleAndTranslate(heartPosition(i), 210, 13, 0, 0));
+            for (let i = 0; i < Math.PI * 2; i += 0.1) pointsOrigin.push(scaleAndTranslate(heartPosition(i), 150, 9, 0, 0));
+            for (let i = 0; i < Math.PI * 2; i += 0.1) pointsOrigin.push(scaleAndTranslate(heartPosition(i), 90, 5, 0, 0));
+
+            let e = pointsOrigin.map((p, i) => ({
+                vx: 0, vy: 0, speed: Math.random() + 5,
+                q: ~~(Math.random() * pointsOrigin.length),
+                D: 2 * (i % 2) - 1,
+                force: 0.2 * Math.random() + 0.7,
+                f: `hsla(0, ${70 + Math.random() * 30}%, ${50 + Math.random() * 20}%, .3)`,
+                trace: Array.from({length: 40}, () => ({x: Math.random() * width, y: Math.random() * height}))
+            }));
+
+            const loop = () => {
+                ctx.fillStyle = "rgba(0,0,0,.15)";
+                ctx.fillRect(0, 0, width, height);
+
+                const targetPoints = pointsOrigin.map(p => [
+                    handOpenLevel * p[0] + handPosX,
+                    handOpenLevel * p[1] + handPosY
+                ]);
+
+                e.forEach(u => {
+                    const q = targetPoints[u.q];
+                    const dx = u.trace[0].x - q[0];
+                    const dy = u.trace[0].y - q[1];
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < 10) {
+                        if (Math.random() > 0.95) u.q = ~~(Math.random() * pointsOrigin.length);
+                        else {
+                            u.q = (u.q + u.D + pointsOrigin.length) % pointsOrigin.length;
+                        }
+                    }
+
+                    u.vx -= dx / dist * u.speed;
+                    u.vy -= dy / dist * u.speed;
+                    u.trace[0].x += u.vx;
+                    u.trace[0].y += u.vy;
+                    u.vx *= u.force;
+                    u.vy *= u.force;
+
+                    for (let k = 1; k < u.trace.length; k++) {
+                        u.trace[k].x -= 0.4 * (u.trace[k].x - u.trace[k-1].x);
+                        u.trace[k].y -= 0.4 * (u.trace[k].y - u.trace[k-1].y);
+                    }
+
+                    ctx.fillStyle = u.f;
+                    u.trace.forEach(t => ctx.fillRect(t.x, t.y, 1, 1));
+                });
+
+                requestAnimationFrame(loop);
+            };
+
+            const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
+            hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.6, minTrackingConfidence: 0.6 });
+
+            hands.onResults((results) => {
+                previewCtx.save();
+                previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+                if (results.image) {
+                    previewCtx.drawImage(results.image, 0, 0, previewCanvas.width, previewCanvas.height);
+                }
+                previewCtx.restore();
+
+                if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                    const lm = results.multiHandLandmarks[0];
+                    handPosX = (1 - lm[9].x) * width;
+                    handPosY = lm[9].y * height;
+                    const d = Math.sqrt(Math.pow(lm[12].x - lm[0].x, 2) + Math.pow(lm[12].y - lm[0].y, 2));
+                    handOpenLevel = Math.min(Math.max((d - 0.1) * 3.5, 0), 1.2);
+                } else {
+                    handOpenLevel = Math.max(0, handOpenLevel - 0.1);
+                }
+            });
+
+            const cam = new Camera(videoElement, {
+                onFrame: async () => {
+                    await hands.send({image: videoElement});
+                },
+                facingMode: 'user',
+                width: 640,
+                height: 480
+            });
+            
+            cam.start()
+                .then(() => {
+                    // Start loop only when camera is successfully started
+                    loop();
+                })
+                .catch(err => {
+                    alert("Lỗi Camera: Hãy đảm bảo bạn cho phép truy cập Camera và chạy trên HTTPS!");
+                    console.error(err);
+                });
+        }
     </script>
 </body>
 </html>
