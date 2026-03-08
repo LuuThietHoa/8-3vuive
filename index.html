@@ -3,206 +3,340 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hand Heart AR - Camera Preview</title>
+    <title>8/3 Special - Từ Trò Chơi Đến Trái Tim</title>
+    
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #000; font-family: sans-serif; }
-        
-        /* Canvas hiệu ứng trái tim tràn màn hình */
-        #heart { position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 10; }
+        @import url('https://fonts.googleapis.com/css2?family=Pacifico&family=Quicksand:wght@600;800&display=swap');
 
-        /* Khung Camera nhỏ ở góc trên bên phải */
-        #camera-preview {
-            position: fixed;
-            top: 15px;
-            right: 15px;
-            width: 140px;
-            height: 105px;
-            border-radius: 10px;
-            border: 2px solid rgba(255, 0, 0, 0.6);
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
-            z-index: 100;
-            transform: scaleX(-1); /* Lật gương cho tự nhiên */
-            background: #222;
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: 'Quicksand', sans-serif; user-select: none; background: #000; }
+
+        /* Background chung cho Game & Tặng hoa */
+        #main-bg {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
+            background: linear-gradient(-45deg, #ff9a9e, #fecfef, #ffc3a0, #ffb199, #ff758c);
+            background-size: 400% 400%; animation: gradientBG 10s ease infinite;
+        }
+        @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+
+        /* UI Stats */
+        #ui-container {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 15px; z-index: 10; padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.3); backdrop-filter: blur(10px); border-radius: 20px;
+        }
+        .stat-box { color: #fff; text-align: center; min-width: 60px; }
+        .stat-value { font-size: 1.2rem; font-weight: 800; display: block; }
+        .stat-label { font-size: 0.7rem; text-transform: uppercase; }
+
+        /* Modals */
+        #modal {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.4); backdrop-filter: blur(20px);
+            border-radius: 25px; padding: 30px; text-align: center; z-index: 100;
+            display: none; flex-direction: column; width: 80%; max-width: 300px;
+        }
+        #modal h2 { font-family: 'Pacifico', cursive; color: #fff; margin: 0; font-size: 1.8rem; }
+        #modal p { color: #fff; margin: 15px 0; font-size: 1rem; }
+        button {
+            background: #ff758c; border: none; padding: 12px; border-radius: 25px;
+            color: white; font-weight: bold; cursor: pointer; font-size: 1rem;
         }
 
-        /* Nút Start để kích hoạt quyền Camera trên Mobile */
-        #btn-start {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            padding: 15px 40px;
-            font-size: 18px;
-            color: white;
-            background: #ff0044;
-            border: none;
-            border-radius: 50px;
-            cursor: pointer;
-            z-index: 200;
-            box-shadow: 0 0 20px rgba(255, 0, 68, 0.5);
-        }
+        /* Camera AR Section */
+        #ar-section { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 200; background: #000; }
+        #camera-preview { position: absolute; top: 10px; right: 10px; width: 100px; height: 75px; border-radius: 8px; transform: scaleX(-1); border: 2px solid #ff758c; z-index: 210; }
+        #heart-canvas { width: 100%; height: 100%; }
 
-        .instruction {
-            position: absolute;
-            bottom: 30px;
-            width: 100%;
-            text-align: center;
-            color: white;
-            z-index: 50;
-            pointer-events: none;
-            text-shadow: 0 2px 5px #000;
+        .particle {
+            position: absolute; width: 8px; height: 8px; background: #fff; border-radius: 50%;
+            pointer-events: none; z-index: 100; animation: burst 0.6s ease-out forwards;
         }
+        @keyframes burst { 0% { transform: translate(0,0) scale(1); opacity: 1; } 100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; } }
     </style>
 </head>
 <body>
 
-    <button id="btn-start">Nhấn để bắt đầu</button>
-    <div class="instruction">Xòe tay để hiện trái tim, Nắm tay để thu lại</div>
+    <div id="main-bg"></div>
+    <audio id="bg-music" src="456.mp3" loop></audio>
 
-    <video id="input_video" style="display:none;"></video>
-    
-    <canvas id="camera-preview"></canvas>
-    
-    <canvas id="heart"></canvas>
+    <div id="game-layer">
+        <div id="ui-container">
+            <div class="stat-box"><span class="stat-label">Vòng</span><span class="stat-value" id="round-val">1</span></div>
+            <div class="stat-box"><span class="stat-label">Time</span><span class="stat-value"><span id="time-val">60</span>s</span></div>
+            <div class="stat-box"><span class="stat-label">Điểm</span><span class="stat-value" id="score-val">0</span></div>
+        </div>
 
-    <script>
-        let handOpenLevel = 0; 
-        let handPosX = window.innerWidth / 2;
-        let handPosY = window.innerHeight / 2;
-        let isStarted = false;
+        <div id="modal">
+            <h2 id="modal-title">Sẵn sàng?</h2>
+            <p id="modal-desc">Bắt hoa nhé, đừng để trượt bông nào!</p>
+            <button id="modal-btn">Bắt đầu</button>
+        </div>
+    </div>
 
-        const btnStart = document.getElementById('btn-start');
-        const canvas = document.getElementById('heart');
-        const ctx = canvas.getContext('2d');
-        const previewCanvas = document.getElementById('camera-preview');
-        const previewCtx = previewCanvas.getContext('2d');
-        const videoElement = document.getElementById('input_video');
+    <div id="ar-section">
+        <video id="input_video" style="display:none;"></video>
+        <canvas id="camera-preview"></canvas>
+        <canvas id="heart-canvas"></canvas>
+        <div style="position:absolute; bottom:20px; width:100%; text-align:center; color:white;">Xòe bàn tay để hiện trái tim tặng nàng</div>
+    </div>
 
-        // Khởi tạo Canvas chính
-        let width = canvas.width = window.innerWidth;
-        let height = canvas.height = window.innerHeight;
+    <script type="module">
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-        window.addEventListener('resize', () => {
-            width = canvas.width = window.innerWidth;
-            height = canvas.height = window.innerHeight;
-        });
+        // --- BIẾN TRẠNG THÁI ---
+        let currentRound = 1;
+        let score = 0;
+        let timeLeft = 60;
+        let gameStatus = 'init'; 
+        let flowers = [];
+        let bouquetModel = null;
+        let flowerModel = null;
+        let scene, camera, renderer, timerInterval;
+        let lastSpawnTime = 0;
 
-        // Cấu hình vẽ trái tim (Giữ logic toán học của bạn)
-        const heartPosition = (rad) => [Math.pow(Math.sin(rad), 3), -(15 * Math.cos(rad) - 5 * Math.cos(2 * rad) - 2 * Math.cos(3 * rad) - Math.cos(4 * rad))];
-        const scaleAndTranslate = (pos, sx, sy, dx, dy) => [dx + pos[0] * sx, dy + pos[1] * sy];
-
-        let pointsOrigin = [];
-        for (let i = 0; i < Math.PI * 2; i += 0.1) pointsOrigin.push(scaleAndTranslate(heartPosition(i), 210, 13, 0, 0));
-        for (let i = 0; i < Math.PI * 2; i += 0.1) pointsOrigin.push(scaleAndTranslate(heartPosition(i), 150, 9, 0, 0));
-        for (let i = 0; i < Math.PI * 2; i += 0.1) pointsOrigin.push(scaleAndTranslate(heartPosition(i), 90, 5, 0, 0));
-
-        let e = pointsOrigin.map((p, i) => ({
-            vx: 0, vy: 0, speed: Math.random() + 5,
-            q: ~~(Math.random() * pointsOrigin.length),
-            D: 2 * (i % 2) - 1,
-            force: 0.2 * Math.random() + 0.7,
-            f: `hsla(0, ${70 + Math.random() * 30}%, ${50 + Math.random() * 20}%, .3)`,
-            trace: Array.from({length: 40}, () => ({x: Math.random() * width, y: Math.random() * height}))
-        }));
-
-        const loop = () => {
-            ctx.fillStyle = "rgba(0,0,0,.15)";
-            ctx.fillRect(0, 0, width, height);
-
-            const targetPoints = pointsOrigin.map(p => [
-                handOpenLevel * p[0] + handPosX,
-                handOpenLevel * p[1] + handPosY
-            ]);
-
-            e.forEach(u => {
-                const q = targetPoints[u.q];
-                const dx = u.trace[0].x - q[0];
-                const dy = u.trace[0].y - q[1];
-                const dist = Math.sqrt(dx * dx + dy * dy);
-
-                if (dist < 10) {
-                    if (Math.random() > 0.95) u.q = ~~(Math.random() * pointsOrigin.length);
-                    else {
-                        u.q = (u.q + u.D + pointsOrigin.length) % pointsOrigin.length;
-                    }
-                }
-
-                u.vx -= dx / dist * u.speed;
-                u.vy -= dy / dist * u.speed;
-                u.trace[0].x += u.vx;
-                u.trace[0].y += u.vy;
-                u.vx *= u.force;
-                u.vy *= u.force;
-
-                for (let k = 1; k < u.trace.length; k++) {
-                    u.trace[k].x -= 0.4 * (u.trace[k].x - u.trace[k-1].x);
-                    u.trace[k].y -= 0.4 * (u.trace[k].y - u.trace[k-1].y);
-                }
-
-                ctx.fillStyle = u.f;
-                u.trace.forEach(t => ctx.fillRect(t.x, t.y, 1, 1));
-            });
-
-            requestAnimationFrame(loop);
+        const levelConfig = {
+            1: { speed: 0.06, rate: 1400 },
+            2: { speed: 0.09, rate: 900 },
+            3: { speed: 0.13, rate: 600 }
         };
 
-        // Thiết lập MediaPipe
-        const hands = new Hands({
-            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-        });
+        // --- KHỞI TẠO THREE.JS ---
+        function initThree() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 10;
 
-        hands.setOptions({
-            maxNumHands: 1,
-            modelComplexity: 1,
-            minDetectionConfidence: 0.6,
-            minTrackingConfidence: 0.6
-        });
+            renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            document.body.appendChild(renderer.domElement);
 
-        hands.onResults((results) => {
-            // Vẽ vào khung Preview nhỏ
-            previewCtx.save();
-            previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
-            previewCtx.drawImage(results.image, 0, 0, previewCanvas.width, previewCanvas.height);
-            previewCtx.restore();
+            const light = new THREE.AmbientLight(0xffffff, 3);
+            scene.add(light);
 
-            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-                const lm = results.multiHandLandmarks[0];
-                
-                // Vị trí tim theo lòng bàn tay (điểm 9)
-                handPosX = (1 - lm[9].x) * width;
-                handPosY = lm[9].y * height;
+            const loader = new GLTFLoader();
+            // Load hoa rơi
+            loader.load('flower_bouquet.glb', (gltf) => {
+                flowerModel = gltf.scene;
+                flowerModel.scale.set(3, 3, 3);
+                showModal("Chào Nàng!", "Bắt hoa cẩn thận nhé, trượt 1 bông là phải làm lại đó!", "Chơi luôn", startRound);
+            });
+            // Load bouquet tặng
+            loader.load('bouquet.glb', (gltf) => {
+                bouquetModel = gltf.scene;
+                bouquetModel.visible = false;
+                bouquetModel.scale.set(5, 5, 5);
+                bouquetModel.position.set(0, -2, 0);
+                scene.add(bouquetModel);
+            });
 
-                // Tính độ mở tay (Khoảng cách đầu ngón giữa - cổ tay)
-                const d = Math.sqrt(Math.pow(lm[12].x - lm[0].x, 2) + Math.pow(lm[12].y - lm[0].y, 2));
-                
-                // Tăng hệ số nhạy (3.5) để dễ bung trái tim hơn
-                handOpenLevel = Math.min(Math.max((d - 0.1) * 3.5, 0), 1.2);
+            animate();
+        }
+
+        function startRound() {
+            document.getElementById('modal').style.display = 'none';
+            flowers.forEach(f => scene.remove(f));
+            flowers = [];
+            timeLeft = 60;
+            gameStatus = 'playing';
+            updateUI();
+            
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if(gameStatus !== 'playing') return;
+                timeLeft--;
+                document.getElementById('time-val').innerText = timeLeft;
+                if(timeLeft <= 0) nextStep();
+            }, 1000);
+        }
+
+        function nextStep() {
+            clearInterval(timerInterval);
+            if (currentRound < 3) {
+                currentRound++;
+                showModal("Giỏi quá!", `Chuẩn bị sang vòng ${currentRound} nhé!`, "Tiếp tục", startRound);
             } else {
-                handOpenLevel = Math.max(0, handOpenLevel - 0.1);
+                showFinalBouquet();
+            }
+        }
+
+        function showFinalBouquet() {
+            gameStatus = 'gift';
+            flowers.forEach(f => scene.remove(f));
+            document.getElementById('ui-container').style.display = 'none';
+            document.getElementById('bg-music').play();
+            
+            bouquetModel.visible = true;
+            // Tạo hiệu ứng hạt lấp lánh xung quanh
+            createGlowParticles();
+
+            showModal("Dành cho Nàng! 🎉", "Chúc nàng 8/3 rực rỡ và hạnh phúc!", "Điều bất ngờ cuối cùng", startAR);
+        }
+
+        function createGlowParticles() {
+            const geo = new THREE.SphereGeometry(0.05, 8, 8);
+            const mat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            for(let i=0; i<50; i++) {
+                const p = new THREE.Mesh(geo, mat);
+                p.position.set((Math.random()-0.5)*10, (Math.random()-0.5)*10, (Math.random()-0.5)*10);
+                scene.add(p);
+                // Animation đơn giản cho hạt
+                setInterval(() => {
+                    p.position.y += 0.01;
+                    if(p.position.y > 5) p.position.y = -5;
+                }, 16);
+            }
+        }
+
+        function animate(time) {
+            requestAnimationFrame(animate);
+            if (gameStatus === 'playing') {
+                const cfg = levelConfig[currentRound];
+                if (time - lastSpawnTime > cfg.rate) {
+                    const f = flowerModel.clone();
+                    f.position.set((Math.random() - 0.5) * 12, 8, 0);
+                    scene.add(f);
+                    flowers.push(f);
+                    lastSpawnTime = time;
+                }
+                for (let i = flowers.length - 1; i >= 0; i--) {
+                    flowers[i].position.y -= cfg.speed;
+                    flowers[i].rotation.y += 0.02;
+                    if (flowers[i].position.y < -8) {
+                        gameStatus = 'lost';
+                        showModal("Hụt mất rồi!", "Lần này phải nhanh tay hơn nhé!", "Thử lại", startRound);
+                    }
+                }
+            }
+            if (gameStatus === 'gift' && bouquetModel) {
+                bouquetModel.rotation.y += 0.01;
+            }
+            renderer.render(scene, camera);
+        }
+
+        // Click để bắt hoa (Mobile friendly)
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        window.addEventListener('pointerdown', (e) => {
+            if(gameStatus !== 'playing') return;
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(flowers, true);
+            if (intersects.length > 0) {
+                let obj = intersects[0].object;
+                while(obj.parent && obj.parent.type !== "Scene") obj = obj.parent;
+                scene.remove(obj);
+                flowers.splice(flowers.indexOf(obj), 1);
+                score++;
+                document.getElementById('score-val').innerText = score;
+                createBurst(e.clientX, e.clientY);
             }
         });
 
-        // Khởi động hệ thống
-        function startSystem() {
-            if (isStarted) return;
-            isStarted = true;
-            btnStart.style.display = 'none';
-
-            const camera = new Camera(videoElement, {
-                onFrame: async () => {
-                    await hands.send({image: videoElement});
-                },
-                facingMode: 'user',
-                width: 640,
-                height: 480
-            });
-            camera.start();
-            loop();
+        function createBurst(x, y) {
+            for(let i=0; i<10; i++) {
+                const p = document.createElement('div');
+                p.className = 'particle';
+                p.style.left = x+'px'; p.style.top = y+'px';
+                const a = Math.random()*Math.PI*2;
+                const v = 40+Math.random()*40;
+                p.style.setProperty('--tx', Math.cos(a)*v+'px');
+                p.style.setProperty('--ty', Math.sin(a)*v+'px');
+                document.body.appendChild(p);
+                setTimeout(() => p.remove(), 600);
+            }
         }
 
-        btnStart.addEventListener('click', startSystem);
+        function showModal(t, d, b, cb) {
+            const m = document.getElementById('modal');
+            document.getElementById('modal-title').innerText = t;
+            document.getElementById('modal-desc').innerText = d;
+            const btn = document.getElementById('modal-btn');
+            btn.innerText = b;
+            m.style.display = 'flex';
+            btn.onclick = cb;
+        }
+
+        function updateUI() {
+            document.getElementById('round-val').innerText = currentRound;
+            document.getElementById('score-val').innerText = score;
+        }
+
+        // --- MÀN 3: AR TRÁI TIM ---
+        function startAR() {
+            document.getElementById('game-layer').style.display = 'none';
+            renderer.domElement.style.display = 'none';
+            document.getElementById('main-bg').style.display = 'none';
+            document.getElementById('ar-section').style.display = 'block';
+            initHeartAR();
+        }
+
+        initThree();
+
+        // --- LOGIC HEART AR (Gộp từ code cũ) ---
+        function initHeartAR() {
+            const canvasH = document.getElementById('heart-canvas');
+            const ctxH = canvasH.getContext('2d');
+            const previewCanvas = document.getElementById('camera-preview');
+            const previewCtx = previewCanvas.getContext('2d');
+            const video = document.getElementById('input_video');
+            
+            let widthH = canvasH.width = window.innerWidth;
+            let heightH = canvasH.height = window.innerHeight;
+            let handOpen = 0, hX = widthH/2, hY = heightH/2;
+
+            const heartPos = (rad) => [Math.pow(Math.sin(rad), 3), -(15 * Math.cos(rad) - 5 * Math.cos(2 * rad) - 2 * Math.cos(3 * rad) - Math.cos(4 * rad))];
+            let points = [];
+            for (let i = 0; i < Math.PI * 2; i += 0.1) points.push(heartPos(i));
+
+            let particles = points.map(() => ({
+                x: Math.random()*widthH, y: Math.random()*heightH,
+                vx: 0, vy: 0, q: ~~(Math.random()*points.length)
+            }));
+
+            const hands = new Hands({locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
+            hands.setOptions({maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.6});
+            hands.onResults(res => {
+                previewCtx.drawImage(res.image, 0, 0, 100, 75);
+                if (res.multiHandLandmarks && res.multiHandLandmarks.length > 0) {
+                    const lm = res.multiHandLandmarks[0];
+                    hX = (1 - lm[9].x) * widthH; hY = lm[9].y * heightH;
+                    const d = Math.sqrt(Math.pow(lm[12].x - lm[0].x, 2) + Math.pow(lm[12].y - lm[0].y, 2));
+                    handOpen = Math.min(Math.max((d - 0.1) * 3.5, 0), 1.3);
+                } else { handOpen = 0; }
+            });
+
+            const cam = new Camera(video, { onFrame: async () => { await hands.send({image: video}); }, facingMode: 'user' });
+            cam.start();
+
+            function drawH() {
+                ctxH.fillStyle = "rgba(0,0,0,0.15)";
+                ctxH.fillRect(0, 0, widthH, heightH);
+                particles.forEach(p => {
+                    const target = [handOpen * points[p.q][0] * 12 + hX, handOpen * points[p.q][1] * 12 + hY];
+                    p.vx += (target[0] - p.x) * 0.05;
+                    p.vy += (target[1] - p.y) * 0.05;
+                    p.x += p.vx *= 0.8; p.y += p.vy *= 0.8;
+                    ctxH.fillStyle = "#ff1493";
+                    ctxH.fillRect(p.x, p.y, 2, 2);
+                });
+                requestAnimationFrame(drawH);
+            }
+            drawH();
+        }
     </script>
 </body>
 </html>
