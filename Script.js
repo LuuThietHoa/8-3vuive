@@ -1,5 +1,5 @@
 var loaded = false;
-var handOpenLevel = 0; // 0: nắm, 1: mở
+var handOpenLevel = 0; 
 var handPosX = window.innerWidth / 2;
 var handPosY = window.innerHeight / 2;
 
@@ -37,7 +37,6 @@ var init = function () {
     var pulse = function (kx, ky) {
         for (var i = 0; i < pointsOrigin.length; i++) {
             targetPoints[i] = [];
-            // Gán tọa độ tim theo vị trí bàn tay handPosX, handPosY
             targetPoints[i][0] = kx * pointsOrigin[i][0] + handPosX;
             targetPoints[i][1] = ky * pointsOrigin[i][1] + handPosY;
         }
@@ -55,16 +54,14 @@ var init = function () {
             f: "hsla(0," + ~~(40 * rand() + 60) + "%," + ~~(60 * rand() + 20) + "%,.3)",
             trace: []
         };
-        for (var k = 0; k < 50; k++) e[i].trace[k] = {x: x, y: y};
+        for (var k = 0; k < 40; k++) e[i].trace[k] = {x: x, y: y};
     }
 
     var config = { traceK: 0.4 };
 
     var loop = function () {
-        // Trái tim co giãn theo độ mở của tay (handOpenLevel)
         pulse(handOpenLevel, handOpenLevel);
-
-        ctx.fillStyle = "rgba(0,0,0,.1)";
+        ctx.fillStyle = "rgba(0,0,0,.15)";
         ctx.fillRect(0, 0, width, height);
 
         for (var i = e.length; i--;) {
@@ -104,7 +101,7 @@ var init = function () {
     loop();
 };
 
-// --- CÀI ĐẶT MEDIAPIPE HANDS ---
+// --- PHẦN XỬ LÝ CAMERA VÀ AI ---
 const videoElement = document.getElementById('input_video');
 const hands = new Hands({
     locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
@@ -113,39 +110,41 @@ const hands = new Hands({
 hands.setOptions({
     maxNumHands: 1,
     modelComplexity: 1,
-    minDetectionConfidence: 0.6,
-    minTrackingConfidence: 0.6
+    minDetectionConfidence: 0.5,
+    minTrackingConfidence: 0.5
 });
 
 hands.onResults((results) => {
     if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
         const landmarks = results.multiHandLandmarks[0];
         
-        // Cập nhật vị trí lòng bàn tay (điểm số 9)
-        // MediaPipe trả về giá trị 0-1 nên phải nhân với width/height
-        handPosX = (1 - landmarks[9].x) * window.innerWidth; // Lật ngược x vì camera bị mirror
+        // Cập nhật vị trí lòng bàn tay và LẬT NGƯỢC X (Mirror) để khớp với cam trước
+        handPosX = (1 - landmarks[9].x) * window.innerWidth; 
         handPosY = landmarks[9].y * window.innerHeight;
 
-        // Tính độ mở bàn tay dựa trên khoảng cách ngón giữa (12) và cổ tay (0)
+        // Tính độ mở tay
         const d = Math.sqrt(Math.pow(landmarks[12].x - landmarks[0].x, 2) + Math.pow(landmarks[12].y - landmarks[0].y, 2));
-        
-        // Điều chỉnh ngưỡng d (0.1 đến 0.45) để tim nở ra mượt mà
-        handOpenLevel = Math.min(Math.max((d - 0.1) / 0.35, 0), 1.2); 
+        handOpenLevel = Math.min(Math.max((d - 0.1) / 0.4, 0), 1.3); 
     } else {
-        // Khi không thấy tay, cho tim thu nhỏ về 0
-        handOpenLevel = 0;
+        handOpenLevel = Math.max(0, handOpenLevel - 0.05); // Thu nhỏ dần khi mất tay
     }
 });
 
+// Thiết lập Camera TRƯỚC (FacingMode: user)
 const camera = new Camera(videoElement, {
     onFrame: async () => {
         await hands.send({image: videoElement});
     },
+    facingMode: 'user', // Ưu tiên cam trước
     width: 1280,
     height: 720
 });
-camera.start();
 
-// Khởi tạo hiệu ứng trái tim
+// Bắt đầu chạy
+camera.start().catch(err => {
+    alert("Lỗi Camera: Hãy đảm bảo bạn dùng HTTPS hoặc Local Server!");
+    console.error(err);
+});
+
 if (document.readyState === 'complete') init();
 else document.addEventListener('DOMContentLoaded', init);
