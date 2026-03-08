@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>8/3 Special - Từ Trò Chơi Đến Trái Tim</title>
+    <title>8/3 Special - Dreamy Flowers</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
@@ -21,68 +21,73 @@
 
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: 'Quicksand', sans-serif; user-select: none; background: #000; }
 
-        /* Background chung cho Game & Tặng hoa */
+        /* Background Gradient Mộng Mơ */
         #main-bg {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;
             background: linear-gradient(-45deg, #ff9a9e, #fecfef, #ffc3a0, #ffb199, #ff758c);
             background-size: 400% 400%; animation: gradientBG 10s ease infinite;
         }
         @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
 
-        /* UI Stats */
+        /* UI Glassmorphism */
         #ui-container {
-            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-            display: flex; gap: 15px; z-index: 10; padding: 10px 20px;
-            background: rgba(255, 255, 255, 0.3); backdrop-filter: blur(10px); border-radius: 20px;
+            position: absolute; top: 30px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 20px; z-index: 10; padding: 12px 30px;
+            background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 20px; box-shadow: 0 8px 32px rgba(255, 105, 180, 0.2);
         }
-        .stat-box { color: #fff; text-align: center; min-width: 60px; }
-        .stat-value { font-size: 1.2rem; font-weight: 800; display: block; }
-        .stat-label { font-size: 0.7rem; text-transform: uppercase; }
+        .stat-box { color: #fff; text-align: center; }
+        .stat-value { font-size: 1.4rem; font-weight: 800; display: block; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.9; }
 
-        /* Modals */
+        /* Canvas Game (Phải nằm trên nền, dưới UI) */
+        canvas { position: absolute; top: 0; left: 0; outline: none; z-index: 5; }
+
+        /* Modal trong suốt */
         #modal {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(255, 255, 255, 0.4); backdrop-filter: blur(20px);
-            border-radius: 25px; padding: 30px; text-align: center; z-index: 100;
-            display: none; flex-direction: column; width: 80%; max-width: 300px;
+            background: rgba(255, 255, 255, 0.25); backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 30px; padding: 40px; text-align: center; z-index: 100;
+            display: none; flex-direction: column; width: 75%; max-width: 320px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
         }
-        #modal h2 { font-family: 'Pacifico', cursive; color: #fff; margin: 0; font-size: 1.8rem; }
-        #modal p { color: #fff; margin: 15px 0; font-size: 1rem; }
+        #modal h2 { font-family: 'Pacifico', cursive; color: #fff; margin: 0; font-size: 2rem; text-shadow: 0 2px 10px rgba(255, 105, 180, 0.5); }
+        #modal p { color: #fff; margin: 20px 0; font-size: 1.1rem; line-height: 1.5; }
         button {
-            background: #ff758c; border: none; padding: 12px; border-radius: 25px;
-            color: white; font-weight: bold; cursor: pointer; font-size: 1rem;
+            background: linear-gradient(45deg, #ff758c, #ff7eb3); border: none; padding: 14px; 
+            border-radius: 30px; color: white; font-weight: bold; cursor: pointer; font-size: 1.1rem;
+            box-shadow: 0 5px 15px rgba(255, 117, 140, 0.4); transition: 0.3s;
         }
+        button:active { transform: scale(0.95); }
 
-        /* Camera AR Section */
+        /* Màn cuối AR */
         #ar-section { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 200; background: #000; }
-        #camera-preview { position: absolute; top: 10px; right: 10px; width: 100px; height: 75px; border-radius: 8px; transform: scaleX(-1); border: 2px solid #ff758c; z-index: 210; }
-        #heart-canvas { width: 100%; height: 100%; }
+        #camera-preview { position: absolute; top: 15px; right: 15px; width: 110px; height: 82px; border-radius: 12px; transform: scaleX(-1); border: 2px solid rgba(255,255,255,0.5); z-index: 210; }
+        #heart-canvas { width: 100%; height: 100%; z-index: 205; }
 
-        .particle {
-            position: absolute; width: 8px; height: 8px; background: #fff; border-radius: 50%;
-            pointer-events: none; z-index: 100; animation: burst 0.6s ease-out forwards;
-        }
+        .particle { position: absolute; width: 10px; height: 10px; background: #fff; border-radius: 50%; pointer-events: none; z-index: 100; animation: burst 0.6s ease-out forwards; }
         @keyframes burst { 0% { transform: translate(0,0) scale(1); opacity: 1; } 100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; } }
     </style>
 </head>
 <body>
 
     <div id="main-bg"></div>
-    
     <audio id="music-hehe" src="hehe.mp3" loop></audio>
     <audio id="music-456" src="456.mp3" loop></audio>
 
     <div id="game-layer">
         <div id="ui-container">
             <div class="stat-box"><span class="stat-label">Vòng</span><span class="stat-value" id="round-val">1</span></div>
-            <div class="stat-box"><span class="stat-label">Time</span><span class="stat-value"><span id="time-val">60</span>s</span></div>
+            <div class="stat-box"><span class="stat-label">Thời gian</span><span class="stat-value"><span id="time-val">60</span>s</span></div>
             <div class="stat-box"><span class="stat-label">Điểm</span><span class="stat-value" id="score-val">0</span></div>
         </div>
 
         <div id="modal">
-            <h2 id="modal-title">Sẵn sàng?</h2>
-            <p id="modal-desc">Bắt hoa nhé, đừng để trượt bông nào!</p>
-            <button id="modal-btn">Bắt đầu</button>
+            <h2 id="modal-title">Chào Nàng!</h2>
+            <p id="modal-desc">Sẵn sàng bắt những đóa hoa xinh đẹp nhất chưa?</p>
+            <button id="modal-btn">Bắt đầu ngay</button>
         </div>
     </div>
 
@@ -90,7 +95,7 @@
         <video id="input_video" style="display:none;"></video>
         <canvas id="camera-preview"></canvas>
         <canvas id="heart-canvas"></canvas>
-        <div style="position:absolute; bottom:20px; width:100%; text-align:center; color:white; pointer-events:none;">Xòe bàn tay để hiện trái tim tặng nàng</div>
+        <div style="position:absolute; bottom:40px; width:100%; text-align:center; color:white; font-size:1.1rem; text-shadow:0 2px 4px #000; pointer-events:none;">Xòe bàn tay để hiện trái tim tặng nàng</div>
     </div>
 
     <script type="module">
@@ -102,8 +107,7 @@
         let timeLeft = 60;
         let gameStatus = 'init'; 
         let flowers = [];
-        let bouquetModel = null;
-        let flowerModel = null;
+        let bouquetModel, flowerModel;
         let scene, camera, renderer, timerInterval;
         let lastSpawnTime = 0;
 
@@ -111,34 +115,37 @@
         const finalMusic = document.getElementById('music-456');
 
         const levelConfig = {
-            1: { speed: 0.06, rate: 1400 },
-            2: { speed: 0.09, rate: 900 },
-            3: { speed: 0.13, rate: 600 }
+            1: { speed: 0.07, rate: 1500 },
+            2: { speed: 0.1, rate: 1000 },
+            3: { speed: 0.14, rate: 700 }
         };
 
         function initThree() {
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.z = 10;
+            camera.position.z = 12;
 
+            // Quan trọng: alpha: true để thấy nền gradient
             renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.setPixelRatio(window.devicePixelRatio);
             document.body.appendChild(renderer.domElement);
 
-            const light = new THREE.AmbientLight(0xffffff, 3);
-            scene.add(light);
+            scene.add(new THREE.AmbientLight(0xffffff, 2.5));
+            const sun = new THREE.DirectionalLight(0xffffff, 1.5);
+            sun.position.set(5, 10, 5);
+            scene.add(sun);
 
             const loader = new GLTFLoader();
             loader.load('flower_bouquet.glb', (gltf) => {
                 flowerModel = gltf.scene;
-                flowerModel.scale.set(3, 3, 3);
-                showModal("Chào Nàng!", "Bắt hoa cẩn thận nhé, trượt 1 bông là phải làm lại đó!", "Chơi luôn", startRound);
+                flowerModel.scale.set(3.5, 3.5, 3.5);
+                document.getElementById('modal').style.display = 'flex';
             });
             loader.load('bouquet.glb', (gltf) => {
                 bouquetModel = gltf.scene;
                 bouquetModel.visible = false;
-                bouquetModel.scale.set(5, 5, 5);
+                bouquetModel.scale.set(5.5, 5.5, 5.5);
                 bouquetModel.position.set(0, -2, 0);
                 scene.add(bouquetModel);
             });
@@ -147,66 +154,49 @@
         }
 
         function startRound() {
-            // Phát nhạc hehe.mp3 ở màn 1 (vòng 1)
-            if (currentRound === 1) {
-                heheMusic.play().catch(e => console.log("Cần tương tác để phát nhạc"));
-            }
-
+            if (currentRound === 1) heheMusic.play();
             document.getElementById('modal').style.display = 'none';
             flowers.forEach(f => scene.remove(f));
             flowers = [];
             timeLeft = 60;
             gameStatus = 'playing';
-            updateUI();
+            document.getElementById('round-val').innerText = currentRound;
             
             clearInterval(timerInterval);
             timerInterval = setInterval(() => {
                 if(gameStatus !== 'playing') return;
                 timeLeft--;
                 document.getElementById('time-val').innerText = timeLeft;
-                if(timeLeft <= 0) nextStep();
+                if(timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    if (currentRound < 3) {
+                        currentRound++;
+                        showModal("Tuyệt vời!", `Sẵn sàng qua vòng ${currentRound} chưa?`, "Tiếp tục", startRound);
+                    } else {
+                        showFinalBouquet();
+                    }
+                }
             }, 1000);
-        }
-
-        function nextStep() {
-            clearInterval(timerInterval);
-            if (currentRound < 3) {
-                currentRound++;
-                showModal("Giỏi quá!", `Chuẩn bị sang vòng ${currentRound} nhé!`, "Tiếp tục", startRound);
-            } else {
-                showFinalBouquet();
-            }
         }
 
         function showFinalBouquet() {
             gameStatus = 'gift';
-            
-            // Dừng nhạc hehe.mp3 và phát 456.mp3 khi chuyển sang màn tặng hoa/cuối
             heheMusic.pause();
-            heheMusic.currentTime = 0;
             finalMusic.play();
-
             flowers.forEach(f => scene.remove(f));
             document.getElementById('ui-container').style.display = 'none';
-            
             bouquetModel.visible = true;
-            createGlowParticles();
-
-            showModal("Dành cho Nàng! 🎉", "Chúc nàng 8/3 rực rỡ và hạnh phúc!", "Điều bất ngờ cuối cùng", startAR);
-        }
-
-        function createGlowParticles() {
-            const geo = new THREE.SphereGeometry(0.05, 8, 8);
-            const mat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-            for(let i=0; i<50; i++) {
-                const p = new THREE.Mesh(geo, mat);
-                p.position.set((Math.random()-0.5)*10, (Math.random()-0.5)*10, (Math.random()-0.5)*10);
+            
+            // Hạt lấp lánh xung quanh đóa hoa
+            const pGeo = new THREE.SphereGeometry(0.06, 6, 6);
+            const pMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            for(let i=0; i<40; i++){
+                const p = new THREE.Mesh(pGeo, pMat);
+                p.position.set((Math.random()-0.5)*8, (Math.random()-0.5)*10, (Math.random()-0.5)*5);
                 scene.add(p);
-                setInterval(() => {
-                    p.position.y += 0.01;
-                    if(p.position.y > 5) p.position.y = -5;
-                }, 16);
+                setInterval(() => { p.position.y += 0.02; if(p.position.y > 6) p.position.y = -6; }, 16);
             }
+            showModal("Hạnh phúc nhé!", "8/3 thật rực rỡ nàng nha!", "Xem quà cuối nè", startAR);
         }
 
         function animate(time) {
@@ -215,23 +205,22 @@
                 const cfg = levelConfig[currentRound];
                 if (time - lastSpawnTime > cfg.rate) {
                     const f = flowerModel.clone();
-                    f.position.set((Math.random() - 0.5) * 12, 8, 0);
+                    // PHẠM VI HẸP CHO ĐIỆN THOẠI: chỉ trong khoảng -4.5 đến 4.5
+                    f.position.set((Math.random() - 0.5) * 9, 10, 0);
                     scene.add(f);
                     flowers.push(f);
                     lastSpawnTime = time;
                 }
                 for (let i = flowers.length - 1; i >= 0; i--) {
                     flowers[i].position.y -= cfg.speed;
-                    flowers[i].rotation.y += 0.02;
-                    if (flowers[i].position.y < -8) {
+                    flowers[i].rotation.y += 0.03;
+                    if (flowers[i].position.y < -10) {
                         gameStatus = 'lost';
-                        showModal("Hụt mất rồi!", "Lần này phải nhanh tay hơn nhé!", "Thử lại", startRound);
+                        showModal("Tiếc quá!", "Trượt mất 1 bông rồi, làm lại nhé!", "Thử lại", startRound);
                     }
                 }
             }
-            if (gameStatus === 'gift' && bouquetModel) {
-                bouquetModel.rotation.y += 0.01;
-            }
+            if (gameStatus === 'gift') bouquetModel.rotation.y += 0.015;
             renderer.render(scene, camera);
         }
 
@@ -255,12 +244,11 @@
         });
 
         function createBurst(x, y) {
-            for(let i=0; i<10; i++) {
+            for(let i=0; i<12; i++) {
                 const p = document.createElement('div');
                 p.className = 'particle';
                 p.style.left = x+'px'; p.style.top = y+'px';
-                const a = Math.random()*Math.PI*2;
-                const v = 40+Math.random()*40;
+                const a = Math.random()*Math.PI*2, v = 40+Math.random()*60;
                 p.style.setProperty('--tx', Math.cos(a)*v+'px');
                 p.style.setProperty('--ty', Math.sin(a)*v+'px');
                 document.body.appendChild(p);
@@ -273,14 +261,8 @@
             document.getElementById('modal-title').innerText = t;
             document.getElementById('modal-desc').innerText = d;
             const btn = document.getElementById('modal-btn');
-            btn.innerText = b;
-            m.style.display = 'flex';
+            btn.innerText = b; m.style.display = 'flex';
             btn.onclick = cb;
-        }
-
-        function updateUI() {
-            document.getElementById('round-val').innerText = currentRound;
-            document.getElementById('score-val').innerText = score;
         }
 
         function startAR() {
@@ -299,50 +281,49 @@
             const previewCanvas = document.getElementById('camera-preview');
             const previewCtx = previewCanvas.getContext('2d');
             const video = document.getElementById('input_video');
-            
-            let widthH = canvasH.width = window.innerWidth;
-            let heightH = canvasH.height = window.innerHeight;
-            let handOpen = 0, hX = widthH/2, hY = heightH/2;
+            let w = canvasH.width = window.innerWidth, h = canvasH.height = window.innerHeight;
+            let handOpen = 0, hX = w/2, hY = h/2;
 
             const heartPos = (rad) => [Math.pow(Math.sin(rad), 3), -(15 * Math.cos(rad) - 5 * Math.cos(2 * rad) - 2 * Math.cos(3 * rad) - Math.cos(4 * rad))];
             let points = [];
             for (let i = 0; i < Math.PI * 2; i += 0.1) points.push(heartPos(i));
-
-            let particles = points.map(() => ({
-                x: Math.random()*widthH, y: Math.random()*heightH,
-                vx: 0, vy: 0, q: ~~(Math.random()*points.length)
-            }));
+            let particles = points.map(() => ({ x: Math.random()*w, y: Math.random()*h, vx: 0, vy: 0, q: ~~(Math.random()*points.length) }));
 
             const hands = new Hands({locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
             hands.setOptions({maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.6});
             hands.onResults(res => {
-                previewCtx.drawImage(res.image, 0, 0, 100, 75);
-                if (res.multiHandLandmarks && res.multiHandLandmarks.length > 0) {
+                previewCtx.clearRect(0,0,110,82);
+                previewCtx.drawImage(res.image, 0, 0, 110, 82);
+                if (res.multiHandLandmarks?.length > 0) {
                     const lm = res.multiHandLandmarks[0];
-                    hX = (1 - lm[9].x) * widthH; hY = lm[9].y * heightH;
+                    hX = (1 - lm[9].x) * w; hY = lm[9].y * h;
                     const d = Math.sqrt(Math.pow(lm[12].x - lm[0].x, 2) + Math.pow(lm[12].y - lm[0].y, 2));
-                    handOpen = Math.min(Math.max((d - 0.1) * 3.5, 0), 1.3);
-                } else { handOpen = 0; }
+                    handOpen = Math.min(Math.max((d - 0.1) * 3.8, 0), 1.4);
+                } else { handOpen = Math.max(0, handOpen - 0.05); }
             });
 
-            const cam = new Camera(video, { onFrame: async () => { await hands.send({image: video}); }, facingMode: 'user' });
-            cam.start();
+            new Camera(video, { onFrame: async () => { await hands.send({image: video}); }, facingMode: 'user' }).start();
 
             function drawH() {
-                ctxH.fillStyle = "rgba(0,0,0,0.15)";
-                ctxH.fillRect(0, 0, widthH, heightH);
+                ctxH.fillStyle = "rgba(0,0,0,0.18)";
+                ctxH.fillRect(0, 0, w, h);
                 particles.forEach(p => {
-                    const target = [handOpen * points[p.q][0] * 12 + hX, handOpen * points[p.q][1] * 12 + hY];
-                    p.vx += (target[0] - p.x) * 0.05;
-                    p.vy += (target[1] - p.y) * 0.05;
-                    p.x += p.vx *= 0.8; p.y += p.vy *= 0.8;
-                    ctxH.fillStyle = "#ff1493";
-                    ctxH.fillRect(p.x, p.y, 2, 2);
+                    const target = [handOpen * points[p.q][0] * 13 + hX, handOpen * points[p.q][1] * 13 + hY];
+                    p.vx += (target[0] - p.x) * 0.06; p.vy += (target[1] - p.y) * 0.06;
+                    p.x += p.vx *= 0.75; p.y += p.vy *= 0.75;
+                    ctxH.fillStyle = `hsla(${340 + handOpen*20}, 100%, 70%, 0.8)`;
+                    ctxH.fillRect(p.x, p.y, 2.5, 2.5);
                 });
                 requestAnimationFrame(drawH);
             }
             drawH();
         }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
     </script>
 </body>
 </html>
